@@ -4,24 +4,16 @@ import { useState } from "react";
 import Image from "next/image";
 
 type AnalysisResult = {
-  // Segregation results
-  wasteType?: string;
-  confidence?: number;
-  recommendations?: string[];
-  recommendedBin?: string;
-  disposalTips?: string[];
-  environmentalImpact?: string;
-  recyclable?: boolean;
-  
-  // Fullness results
-  fullnessLevel?: number;
   status?: string;
-  details?: string;
-  action?: string;
-  urgency?: 'low' | 'medium' | 'high';
-  estimatedCapacity?: string;
-  nextEmptyingRecommendation?: string;
-  wasteVolume?: string;
+  message?: string;
+  segregated_category?: string;
+  detected_labels?: string[];
+  confidence?: number;
+  document_id?: string;
+  
+  // Additional fields for fullness analysis
+  fullness_level?: string;
+  fill_percentage?: number;
 };
 
 export default function Home() {
@@ -58,32 +50,28 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setAnalysisResult(data.result);
+      setAnalysisResult(data);
     } catch (error) {
       console.error('Analysis error:', error);
       // Fallback to mock data on error
       if (selectedOption === 'segregation') {
-        const wasteTypes = ['Plastic', 'Paper', 'Glass', 'Organic', 'Metal'];
-        const randomType = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
-        const confidence = Math.floor(Math.random() * 20) + 80;
-        
         setAnalysisResult({
-          wasteType: randomType,
-          confidence: confidence,
-          recommendations: [
-            `This appears to be ${randomType.toLowerCase()} waste`,
-            `Dispose in the ${randomType.toLowerCase()} recycling bin`,
-            confidence > 90 ? 'High confidence classification' : 'Consider manual verification'
-          ]
+          status: 'Error',
+          message: 'Analysis failed, showing mock data',
+          segregated_category: 'Plastic',
+          detected_labels: ['bottle', 'plastic', 'recyclable'],
+          confidence: 0.85,
+          document_id: 'mock_doc_id'
         });
       } else {
-        const fullnessLevel = Math.floor(Math.random() * 100);
-        const status = fullnessLevel > 80 ? 'Nearly Full' : fullnessLevel > 50 ? 'Half Full' : 'Not Full';
-        
         setAnalysisResult({
-          fullnessLevel: fullnessLevel,
-          status: status,
-          details: fullnessLevel > 80 ? 'Dustbin needs to be emptied soon' : 'Dustbin has sufficient space'
+          status: 'Error',
+          message: 'Analysis failed, showing mock data',
+          fullness_level: 'Medium',
+          fill_percentage: 65,
+          detected_labels: ['container', 'waste', 'bin'],
+          confidence: 0.78,
+          document_id: 'mock_doc_id'
         });
       }
     } finally {
@@ -248,129 +236,97 @@ export default function Home() {
               {/* Analysis Results */}
               {analysisResult && (
                 <div className="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Analysis Results</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+                    {selectedOption === 'segregation' ? '♻️ Waste Segregation Results' : '📏 Dustbin Fullness Results'}
+                  </h3>
                   
-                  {selectedOption === 'segregation' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Waste Type: </span>
-                          <span className="text-green-600 font-semibold">{analysisResult.wasteType}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Confidence: </span>
-                          <span className="text-blue-600 font-semibold">{analysisResult.confidence}%</span>
-                        </div>
-                      </div>
-                      
-                      {analysisResult.recommendedBin && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Recommended Bin: </span>
-                          <span className="text-blue-700 dark:text-blue-300 font-semibold">{analysisResult.recommendedBin}</span>
-                        </div>
-                      )}
-
-                      {analysisResult.disposalTips && (
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300 block mb-2">Disposal Tips:</span>
-                          <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
-                            {analysisResult.disposalTips.map((tip, index) => (
-                              <li key={index}>{tip}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {analysisResult.environmentalImpact && (
-                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                          <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">Environmental Impact:</span>
-                          <p className="text-green-700 dark:text-green-300 text-sm">{analysisResult.environmentalImpact}</p>
-                        </div>
-                      )}
-
-                      {analysisResult.recyclable !== undefined && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Recyclable:</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            analysisResult.recyclable 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-                          }`}>
-                            {analysisResult.recyclable ? 'Yes' : 'No'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedOption === 'fullness' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Status: </span>
-                          <span className={`font-semibold ${
-                            analysisResult.urgency === 'high' ? 'text-red-600' : 
-                            analysisResult.urgency === 'medium' ? 'text-yellow-600' : 'text-green-600'
-                          }`}>
-                            {analysisResult.status}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Fullness: </span>
-                          <span className="font-semibold">{analysisResult.fullnessLevel}%</span>
-                        </div>
-                      </div>
-
-                      <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-600">
-                        <div 
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            analysisResult.urgency === 'high' ? 'bg-red-600' : 
-                            analysisResult.urgency === 'medium' ? 'bg-yellow-600' : 'bg-green-600'
-                          }`}
-                          style={{ width: `${analysisResult.fullnessLevel}%` }}
-                        ></div>
-                      </div>
-
-                      {analysisResult.action && (
-                        <div className={`p-4 rounded-lg ${
-                          analysisResult.urgency === 'high' ? 'bg-red-50 dark:bg-red-900/20' :
-                          analysisResult.urgency === 'medium' ? 'bg-yellow-50 dark:bg-yellow-900/20' :
-                          'bg-green-50 dark:bg-green-900/20'
+                  {/* Common Results */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Status: </span>
+                        <span className={`font-semibold ${
+                          analysisResult.status === 'Success' ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">Recommended Action:</span>
-                          <p className={`text-sm ${
-                            analysisResult.urgency === 'high' ? 'text-red-700 dark:text-red-300' :
-                            analysisResult.urgency === 'medium' ? 'text-yellow-700 dark:text-yellow-300' :
-                            'text-green-700 dark:text-green-300'
-                          }`}>
-                            {analysisResult.action}
-                          </p>
-                        </div>
-                      )}
+                          {analysisResult.status}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Confidence: </span>
+                        <span className="text-blue-600 font-semibold">
+                          {analysisResult.confidence ? `${(analysisResult.confidence * 100).toFixed(1)}%` : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        {analysisResult.estimatedCapacity && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Message: </span>
+                      <span className="text-blue-700 dark:text-blue-300">{analysisResult.message}</span>
+                    </div>
+
+                    {selectedOption === 'segregation' && analysisResult.segregated_category && (
+                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Detected Category: </span>
+                        <span className="text-green-700 dark:text-green-300 font-semibold text-lg">
+                          {analysisResult.segregated_category}
+                        </span>
+                      </div>
+                    )}
+
+                    {selectedOption === 'fullness' && analysisResult.fullness_level && (
+                      <div className="space-y-3">
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Fullness Level: </span>
+                          <span className="text-orange-700 dark:text-orange-300 font-semibold text-lg">
+                            {analysisResult.fullness_level}
+                          </span>
+                        </div>
+                        
+                        {analysisResult.fill_percentage && (
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Remaining Capacity: </span>
-                            <span className="text-gray-600 dark:text-gray-400">{analysisResult.estimatedCapacity}</span>
-                          </div>
-                        )}
-                        {analysisResult.wasteVolume && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Current Volume: </span>
-                            <span className="text-gray-600 dark:text-gray-400">{analysisResult.wasteVolume}</span>
+                            <div className="flex justify-between mb-2">
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Fill Percentage:</span>
+                              <span className="font-semibold">{analysisResult.fill_percentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-600">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-500 ${
+                                  analysisResult.fill_percentage >= 80 ? 'bg-red-600' : 
+                                  analysisResult.fill_percentage >= 60 ? 'bg-yellow-600' : 'bg-green-600'
+                                }`}
+                                style={{ width: `${analysisResult.fill_percentage}%` }}
+                              ></div>
+                            </div>
                           </div>
                         )}
                       </div>
+                    )}
 
-                      {analysisResult.nextEmptyingRecommendation && (
-                        <div className="border-t pt-4">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Next Emptying: </span>
-                          <span className="text-gray-600 dark:text-gray-400">{analysisResult.nextEmptyingRecommendation}</span>
+                    {analysisResult.detected_labels && analysisResult.detected_labels.length > 0 && (
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-2">Detected Labels:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {analysisResult.detected_labels.map((label, index) => (
+                            <span 
+                              key={index}
+                              className="px-3 py-1 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full text-sm"
+                            >
+                              {label}
+                            </span>
+                          ))}
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+
+                    {analysisResult.document_id && (
+                      <div className="border-t pt-4">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Document ID: </span>
+                        <span className="text-gray-600 dark:text-gray-400 font-mono text-sm">
+                          {analysisResult.document_id}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <button 
                     onClick={resetUpload}
