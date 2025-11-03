@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// 🚨 IMPORTANT: This URL is now the single endpoint of your new unified Cloud Function
 const EXTERNAL_API_ENDPOINT = "https://web-segregation-api-1087940626963.asia-south2.run.app";
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Get Form Data (This is correct for receiving from your frontend)
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const analysisType = formData.get('type') as string;
@@ -16,18 +18,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid analysis type' }, { status: 400 });
     }
 
-    // Convert file to base64 for the external API
+    // 2. Convert file to base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
 
-    // Prepare payload for external API
+    // 3. Prepare JSON payload for the single Python endpoint
+    // The Python function expects 'image' and 'analysis_type'
     const payload = {
       image: base64Image,
       analysis_type: analysisType
+      // Note: If you need to send 'category' for the 'fullness' check, 
+      // your frontend logic needs to call this route twice and send the category 
+      // in the second request, but this current route doesn't support that multi-step flow.
     };
 
-    // Call the external Cloud Function API
+    // 4. Call the external Cloud Function API
+    // Ensure the Content-Type is application/json as expected by Python
     const response = await fetch(EXTERNAL_API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +42,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`External API error! Status: ${response.status}`);
+      // Fetch the error body from the API response for detailed logging
+      const errorBody = await response.text(); 
+      throw new Error(`External API error! Status: ${response.status}. Details: ${errorBody.substring(0, 200)}`);
     }
 
     const result = await response.json();
@@ -56,5 +65,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-

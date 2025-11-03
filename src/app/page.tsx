@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
+// 1. UPDATED TYPE DEFINITION to match Python API output
 type AnalysisResult = {
   status?: string;
   message?: string;
@@ -11,9 +12,10 @@ type AnalysisResult = {
   confidence?: number;
   document_id?: string;
   
-  // Additional fields for fullness analysis
-  fullness_level?: string;
-  fill_percentage?: number;
+  // Fields for FULLNESS analysis, returned from the API for both types of calls
+  bin_level?: number; 
+  alert?: boolean; // NEW: True if fill >= 90%
+  analysisType?: 'segregation' | 'fullness';
 };
 
 export default function Home() {
@@ -38,8 +40,9 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('file', uploadedFile);
-      formData.append('type', selectedOption);
+      formData.append('type', selectedOption); // Send 'segregation' or 'fullness'
 
+      // Call the local Next.js API route
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
@@ -53,25 +56,24 @@ export default function Home() {
       setAnalysisResult(data);
     } catch (error) {
       console.error('Analysis error:', error);
-      // Fallback to mock data on error
+      
+      // Fallback to mock data on error (UPDATED MOCK DATA STRUCTURE)
       if (selectedOption === 'segregation') {
         setAnalysisResult({
           status: 'Error',
-          message: 'Analysis failed, showing mock data',
-          segregated_category: 'Plastic',
+          message: 'Analysis failed, showing mock data for segregation.',
+          segregated_category: 'PLASTIC',
           detected_labels: ['bottle', 'plastic', 'recyclable'],
           confidence: 0.85,
-          document_id: 'mock_doc_id'
+          document_id: 'mock_seg_doc'
         });
-      } else {
+      } else { // 'fullness'
         setAnalysisResult({
           status: 'Error',
-          message: 'Analysis failed, showing mock data',
-          fullness_level: 'Medium',
-          fill_percentage: 65,
-          detected_labels: ['container', 'waste', 'bin'],
-          confidence: 0.78,
-          document_id: 'mock_doc_id'
+          message: 'Analysis failed, showing mock data for fullness check.',
+          bin_level: 95.5, // Mock fill level
+          alert: true,     // Mock alert status
+          document_id: 'mock_fill_doc'
         });
       }
     } finally {
@@ -84,6 +86,17 @@ export default function Home() {
     setAnalysisResult(null);
     setSelectedOption(null);
   };
+
+  const binLevel = analysisResult?.bin_level ?? 0;
+  const isAlert = analysisResult?.alert ?? false;
+
+  // JSX Helper for fullness styling
+  const getFillColor = (level: number) => {
+    if (level >= 90) return 'bg-red-600';
+    if (level >= 70) return 'bg-yellow-600';
+    return 'bg-green-600';
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
@@ -253,6 +266,7 @@ export default function Home() {
                       </div>
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">Confidence: </span>
+                        {/* Confidence is a score (0-1) only returned for segregation */}
                         <span className="text-blue-600 font-semibold">
                           {analysisResult.confidence ? `${(analysisResult.confidence * 100).toFixed(1)}%` : 'N/A'}
                         </span>
@@ -264,6 +278,7 @@ export default function Home() {
                       <span className="text-blue-700 dark:text-blue-300">{analysisResult.message}</span>
                     </div>
 
+                    {/* --- SEGREGATION SPECIFIC RESULTS --- */}
                     {selectedOption === 'segregation' && analysisResult.segregated_category && (
                       <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                         <span className="font-medium text-gray-700 dark:text-gray-300">Detected Category: </span>
@@ -273,35 +288,41 @@ export default function Home() {
                       </div>
                     )}
 
-                    {selectedOption === 'fullness' && analysisResult.fullness_level && (
+                    {/* --- FULLNESS SPECIFIC RESULTS (Updated Logic) --- */}
+                    {selectedOption === 'fullness' && analysisResult.bin_level !== undefined && (
                       <div className="space-y-3">
-                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Fullness Level: </span>
-                          <span className="text-orange-700 dark:text-orange-300 font-semibold text-lg">
-                            {analysisResult.fullness_level}
-                          </span>
+                         <div className={`p-4 rounded-lg border-2 ${
+                            isAlert ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 
+                            'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        }`}>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Fill Level: </span>
+                            <span className={`font-semibold text-lg ${isAlert ? 'text-red-700' : 'text-green-700'}`}>
+                                {analysisResult.bin_level.toFixed(1)}% Full
+                            </span>
+                            {isAlert && (
+                                <p className="mt-1 text-sm font-bold text-red-700 dark:text-red-300 animate-pulse">
+                                    🚨 ALERT: Bin is near capacity (over 90%)!
+                                </p>
+                            )}
                         </div>
                         
-                        {analysisResult.fill_percentage && (
-                          <div>
+                        {/* Progress Bar */}
+                        <div>
                             <div className="flex justify-between mb-2">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">Fill Percentage:</span>
-                              <span className="font-semibold">{analysisResult.fill_percentage}%</span>
+                              <span className="font-medium text-gray-700 dark:text-gray-300">Fill Progress:</span>
+                              <span className="font-semibold">{analysisResult.bin_level.toFixed(1)}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-600">
                               <div 
-                                className={`h-3 rounded-full transition-all duration-500 ${
-                                  analysisResult.fill_percentage >= 80 ? 'bg-red-600' : 
-                                  analysisResult.fill_percentage >= 60 ? 'bg-yellow-600' : 'bg-green-600'
-                                }`}
-                                style={{ width: `${analysisResult.fill_percentage}%` }}
+                                className={`h-3 rounded-full transition-all duration-500 ${getFillColor(analysisResult.bin_level)}`}
+                                style={{ width: `${analysisResult.bin_level}%` }}
                               ></div>
                             </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     )}
-
+                    
+                    {/* Detected Labels are returned for both analysis types */}
                     {analysisResult.detected_labels && analysisResult.detected_labels.length > 0 && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300 block mb-2">Detected Labels:</span>
