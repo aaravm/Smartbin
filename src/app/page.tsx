@@ -180,33 +180,66 @@ export default function Home() {
               </div>
 
               {/* File Upload Area */}
-              <div className="mb-6">
+                <div className="mb-6">
                 <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Upload Image
+                  Upload Image or Use Camera
                 </label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500">
                   <div className="space-y-1 text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+
+                  <div className="flex items-center justify-center gap-3">
+                    {/* Standard file upload (gallery / files) */}
+                    <label
+                    htmlFor="file-upload"
+                    className="relative inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+                    >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4 4 4m6 8V8m0 8l4-4m-4 4-4-4" />
                     </svg>
-                    <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                      <label htmlFor="file-upload" className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
-                        <span>Upload a file</span>
-                        <input 
-                          id="file-upload" 
-                          name="file-upload" 
-                          type="file" 
-                          className="sr-only" 
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                    <span>Upload a file</span>
+                    </label>
+
+                    {/* Camera input: on mobile this will open the camera */}
+                    <label
+                    htmlFor="camera-upload"
+                    className="relative inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border rounded-md text-sm font-medium text-orange-600 hover:text-orange-500 cursor-pointer"
+                    >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h2l2-3h8l2 3h2v11a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                    </svg>
+                    <span>Use Camera</span>
+                    </label>
+                  </div>
+
+                  {/* Hidden inputs */}
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                  />
+
+                  {/* The capture attribute hints mobile devices to open the camera.
+                    "environment" requests the rear camera; "user" requests the front camera. */}
+                  <input
+                    id="camera-upload"
+                    name="camera-upload"
+                    type="file"
+                    className="sr-only"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileUpload}
+                  />
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB — or take a photo with your camera</p>
                   </div>
                 </div>
-              </div>
+                </div>
 
               {/* File Preview */}
               {uploadedFile && (
